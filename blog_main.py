@@ -114,17 +114,19 @@ def skip_frame_generator(df):
 
 
 def select_roi():
-    x, y, w, h = cv2.selectROI(WIN_NAME, frame)
-    cx = x
-    cy = int(y + 0.1*h)
-    print("ROI selected: %s, %s, %s, %s" % (x, y, w, h))
-    img = cv2.rectangle(frame, (x, y), (x + w, y + h), color=(0, 0, 255), thickness=3)
-    # message = input("Type of defect: ")
-    message = easygui.enterbox(msg="Enter some text below!",
-                               title="Title of window",
-                               strip=False,  # will remove whitespace around whatever the user types in
-                               )
-    cv2.putText(img, message, (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 3, 255, thickness=3)
+    # x, y, w, h = cv2.selectROI(WIN_NAME, frame)
+    roi_list = cv2.selectROIs(WIN_NAME, frame)
+    for roi in roi_list:
+        x, y, w, h = roi
+        cx = x
+        cy = int(y + 0.1*h)
+        print("ROI selected: %s, %s, %s, %s" % (x, y, w, h))
+        img = cv2.rectangle(frame, (x, y), (x + w, y + h), color=(0, 0, 255), thickness=3)
+        message = easygui.enterbox(msg="Enter some text below!",
+                                   title="Title of window",
+                                   strip=False,  # will remove whitespace around whatever the user types in
+                                   )
+        cv2.putText(img, message, (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 3, 255, thickness=3)
     filename = "image_%0.5f.png" % t.time()
     print("Saving Image: %s" % filename)
     cv2.imwrite(filename, img)
