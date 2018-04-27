@@ -28,47 +28,55 @@ More info: http://giusedroid.blogspot.com
 
 import sys
 import time as t
-
+import numpy as np
 # Check if OpenCV module is present
 # otherwise stop the application
 
 try:
     import cv2
 except ImportError as e:
-    print "Fatal Error: Could not import OpenCV, ", e
+    print("Fatal Error: Could not import OpenCV, ", e)
     exit(-1)
 else:
-    print "Using OpenCV ", cv2.__version__
+    print ("Using OpenCV ", cv2.__version__)
 
 # these flags may depend on your opencv version:
 # in opencv 3.0.0 these flags are implemented as
 # cv2.CAP_PROP_POS_FRAMES and
 # cv2.CAP_PROP_FRAME_COUNT
+#CURRENT_FRAME_FLAG = cv2.cv.CV_CAP_PROP_POS_FRAMES
+#TOTAL_FRAMES_FLAG = cv2.cv.CV_CAP_PROP_FRAME_COUNT
 
-CURRENT_FRAME_FLAG = cv2.cv.CV_CAP_PROP_POS_FRAMES
-TOTAL_FRAMES_FLAG = cv2.cv.CV_CAP_PROP_FRAME_COUNT
+CURRENT_FRAME_FLAG = cv2.CAP_PROP_POS_FRAMES
+TOTAL_FRAMES_FLAG = cv2.CAP_PROP_FRAME_COUNT
+
+
 WIN_NAME = "Frame Grabber"
 POS_TRACKBAR = "pos_trackbar"
 
 VIDEO_PATH = None
 
+
+import easygui # easy_install easygui
+
+
 try:
     VIDEO_PATH = sys.argv[1]
 except IndexError as e:
-    print HELP_MESSAGE
+    print(HELP_MESSAGE)
     exit(-1)
-
 
 cap = cv2.VideoCapture(VIDEO_PATH)
 
 if not cap.isOpened():
-    print "Fatal Error: Could not open the specified file."
+    print("Fatal Error: Could not open the specified file.")
     exit(-1)
 
 ret, frame = cap.read()
 
+
 if not ret:
-    print "Fatal Error: Could not read/decode frames from specified file."
+    print("Fatal Error: Could not read/decode frames from specified file.")
     exit(-1)
 
 
@@ -90,7 +98,6 @@ def seek_callback(x):
 
 
 def mouse_callback(event,x,y,flags,param):
-
     if event == cv2.EVENT_LBUTTONDBLCLK:
         save_image()
 
@@ -103,11 +110,27 @@ def skip_frame_generator(df):
         cap.set(CURRENT_FRAME_FLAG, cf+df)
         cv2.setTrackbarPos(POS_TRACKBAR, WIN_NAME, int(cap.get(CURRENT_FRAME_FLAG)))
         _, frame = cap.read()
-
     return skip_frame
 
 
-cv2.namedWindow(WIN_NAME)
+def select_roi():
+    x, y, w, h = cv2.selectROI(WIN_NAME, frame)
+    cx = x
+    cy = int(y + 0.1*h)
+    print("ROI selected: %s, %s, %s, %s" % (x, y, w, h))
+    img = cv2.rectangle(frame, (x, y), (x + w, y + h), color=(0, 0, 255), thickness=3)
+    # message = input("Type of defect: ")
+    message = easygui.enterbox(msg="Enter some text below!",
+                               title="Title of window",
+                               strip=False,  # will remove whitespace around whatever the user types in
+                               )
+    cv2.putText(img, message, (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 3, 255, thickness=3)
+    filename = "image_%0.5f.png" % t.time()
+    print("Saving Image: %s" % filename)
+    cv2.imwrite(filename, img)
+
+
+cv2.namedWindow(WIN_NAME, flags=cv2.WINDOW_NORMAL)
 cv2.createTrackbar(POS_TRACKBAR, WIN_NAME, 0, int(cap.get(TOTAL_FRAMES_FLAG)), seek_callback)
 cv2.setMouseCallback(WIN_NAME, mouse_callback)
 
@@ -119,9 +142,13 @@ actions[ord("a")] = skip_frame_generator(-1)
 actions[ord("A")] = skip_frame_generator(-10)
 actions[ord("q")] = lambda: exit(0)
 actions[ord("s")] = save_image
+actions[ord("r")] = select_roi
+
+cv2.resizeWindow(WIN_NAME, 2400, 1600)
 
 while True:
-
+    current_index = cv2.getTrackbarPos(POS_TRACKBAR, WIN_NAME)
+    # (x, y, w, h) = cv2.selectROI(WIN_NAME, frame)
     cv2.imshow(WIN_NAME, frame)
     key = cv2.waitKey(0) & 0xFF
     actions.get(key, dummy)()
