@@ -26,9 +26,11 @@ More info: http://giusedroid.blogspot.com
 # Check if the user has provided a path to a file
 # otherwise display the HELP_MESSAGE
 
+import os
 import sys
 import time as t
-import numpy as np
+
+
 # Check if OpenCV module is present
 # otherwise stop the application
 
@@ -73,6 +75,8 @@ if not cap.isOpened():
     exit(-1)
 
 ret, frame = cap.read()
+length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+print("%s has %s frames" % (VIDEO_PATH, length))
 
 
 if not ret:
@@ -114,21 +118,19 @@ def skip_frame_generator(df):
 
 
 def select_roi():
-    # x, y, w, h = cv2.selectROI(WIN_NAME, frame)
-    roi_list = cv2.selectROIs(WIN_NAME, frame)
-    for roi in roi_list:
-        x, y, w, h = roi
-        cx = x
-        cy = int(y + 0.1*h)
-        print("ROI selected: %s, %s, %s, %s" % (x, y, w, h))
-        img = cv2.rectangle(frame, (x, y), (x + w, y + h), color=(0, 0, 255), thickness=3)
-        message = easygui.enterbox(msg="Enter some text below!",
-                                   title="Title of window",
-                                   strip=False,  # will remove whitespace around whatever the user types in
-                                   )
-        cv2.putText(img, message, (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 3, 255, thickness=3)
-    filename = "image_%0.5f.png" % t.time()
-    print("Saving Image: %s" % filename)
+    x, y, w, h = cv2.selectROI(WIN_NAME, frame)
+    cx = x
+    cy = int(y + 0.1*h)
+    img = cv2.rectangle(frame, (x, y), (x + w, y + h), color=(0, 0, 255), thickness=3)
+    cv2.imshow(WIN_NAME, img)
+    message = easygui.enterbox(msg="Enter some text below!",
+                               title="Title of window",
+                               strip=False,  # will remove whitespace around whatever the user types in
+                               )
+    cv2.putText(img, message, (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), thickness=4)
+    cv2.imshow(WIN_NAME, img)
+    current_frame_index = cap.get(CURRENT_FRAME_FLAG)
+    filename = os.path.splitext(os.path.basename(VIDEO_PATH))[0] + "_frame_%s_ROI.png" % int(current_frame_index)
     cv2.imwrite(filename, img)
 
 
@@ -146,14 +148,23 @@ actions[ord("q")] = lambda: exit(0)
 actions[ord("s")] = save_image
 actions[ord("r")] = select_roi
 
+
 cv2.resizeWindow(WIN_NAME, 2400, 1600)
 
+play_video = True
+
 while True:
-    current_index = cv2.getTrackbarPos(POS_TRACKBAR, WIN_NAME)
-    # (x, y, w, h) = cv2.selectROI(WIN_NAME, frame)
-    cv2.imshow(WIN_NAME, frame)
-    key = cv2.waitKey(0) & 0xFF
+    if play_video:
+        ret, frame = cap.read()
+        cv2.imshow(WIN_NAME, frame)
+        print(int(cap.get(CURRENT_FRAME_FLAG)))
+
+    key = cv2.waitKey(120) & 0xFF
+    if key == ord('p'):
+        play_video = not play_video
     actions.get(key, dummy)()
+
+
 
 
 
